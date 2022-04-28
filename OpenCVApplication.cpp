@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "common.h"
+#include <vector>
 
 void testOpenImage()
 {
@@ -508,10 +509,12 @@ void RGB2HSV() {
 	}
 }
 
-Vec3b RGB2HSV_values(void* img, int x, int y) {
+std::vector<float> RGB2HSV_values(void* img, int x, int y) {
 	Mat* src = (Mat*)img;
 	Mat* return_img;
-	Vec3b HSV_px;
+	//Vec3b HSV_px;
+
+	std::vector<float> HSV_vector;
 
 	int height = src->rows;
 	int width = src->cols;
@@ -565,35 +568,31 @@ Vec3b RGB2HSV_values(void* img, int x, int y) {
 	float S_normalized = S * 255;
 	float V_normalized = V * 255;
 
-	HSV_px = px;
-	HSV_px[0] = H_normalized;
-	HSV_px[1] = S_normalized;
-	HSV_px[2] = V_normalized;
+	HSV_vector.push_back(H_normalized);
+	HSV_vector.push_back(S_normalized);
+	HSV_vector.push_back(V_normalized);
 
-	
-	return HSV_px;
+	return HSV_vector;
 }
 
 void MyCallBackFunc_HSV(int event, int x, int y, int flags, void* param)
 {
 	//More examples: http://opencvexamples.blogspot.com/2014/01/detect-mouse-clicks-and-moves-on-image.html
 	Mat* src = (Mat*)param;
-	Vec3b px = RGB2HSV_values(param, x, y);
 	if (event == CV_EVENT_LBUTTONDOWN)
 	{
-		printf("Ps(x,y) 255 format: %d,%d Color(HSV): %d,%d,%d\n",
+		Vec3b px = src->at<Vec3b>(y, x);
+		std::vector<float> HSV_vector = RGB2HSV_values(src, y, x);
+		printf("Ps(x,y) 255 format: %d,%d Color(RGB): %d,%d,%d\n",
 			x, y,
-			px[0],
+			px[2],
 			px[1],
-			px[2]);
-		printf("Ps(x, y) HSV format: %d,%d Color(HSV): %d,%f,%f\n",
+			px[0]);
+		printf("Ps(x, y) HSV normalized format: %d,%d Color(HSV): %f,%f,%f\n",
 			x, y,
-			px[0] * 360 / 255,
-			px[1] / 255.0f,
-			px[2] / 255.0f);
-		//(int)(*src).at<Vec3b>(y, x)[2],
-		//(int)(*src).at<Vec3b>(y, x)[2],
-		//(int)(*src).at<Vec3b>(y, x)[2]);
+			HSV_vector.at(0) * 360 / 255,  // H value -> grades : 0...360
+			HSV_vector.at(1) / 255 * 100,  // S value -> percent: 0...100%
+			HSV_vector.at(2) / 255 * 100); // V value -> percent: 0...100%
 	}
 	if(event == CV_EVENT_RBUTTONDOWN)
 		RGB2HSV();
