@@ -511,14 +511,9 @@ void RGB2HSV() {
 
 std::vector<float> RGB2HSV_values(void* img, int x, int y) {
 	Mat* src = (Mat*)img;
-	Mat* return_img;
-	//Vec3b HSV_px;
-
-	std::vector<float> HSV_vector;
-
 	int height = src->rows;
 	int width = src->cols;
-
+	std::vector<float> HSV_vector; // return vector
 
 	Vec3b px = src->at<Vec3b>(x, y);
 
@@ -619,7 +614,7 @@ void testMouseClick_HSV()
 	}
 }
 
-void RGB2YCrCb() {
+void RGB2YCbCr() {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
 		Mat img = imread(fname, IMREAD_COLOR);
@@ -631,18 +626,24 @@ void RGB2YCrCb() {
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
 				Vec3b px = img.at<Vec3b>(i, j);
-				unsigned char blue_px = px[0];
-				unsigned char green_px = px[1];
-				unsigned char red_px = px[2];
+				unsigned char B = px[0];
+				unsigned char G = px[1];
+				unsigned char R = px[2];
 
 				Vec3b processed_px = px;
+
+				/* Trial: bad results
 
 				unsigned char Y = 0.299 * red_px + 0.587 * green_px + 0.114 * blue_px;
 				unsigned char Cr = (red_px - Y) * 0.713 + delta;
 				unsigned char Cb = (blue_px - Y) * 0.564 + delta;
 				red_px = Y + 1.403 * (Cr - delta);
 				green_px = Y - 0.714 * (Cr - delta) - 0.344 * (Cb - delta);
-				blue_px = Y + 1.773 * (Cb - delta);
+				blue_px = Y + 1.773 * (Cb - delta);*/
+
+				unsigned char Y = 16 + 65.738 * R / 256 + 129.057 * G / 256 + 25.064 * B / 256;
+				unsigned char Cb = 128 - 37.945 * R / 256 - 74.494 * G / 256 + 112.439 * B / 256;
+				unsigned char Cr = 128 + 112.439 * R / 256 - 94.154 * G / 256 - 18.285 * B / 256;
 
 				processed_px[0] = Y;
 				processed_px[1] = Cr;
@@ -652,7 +653,88 @@ void RGB2YCrCb() {
 			}
 		}
 		
-		imshow("YCrCb image", return_img);
+		imshow("YCbCr image", return_img);
+		waitKey(0);
+	}
+}
+
+std::vector<float> RGB2YCbCr_values(void* img, int x, int y) {
+	Mat* src = (Mat*)img;
+	int height = src->rows;
+	int width = src->cols;
+	std::vector<float> YCbCr_vector; // return vector
+
+	Vec3b px = src->at<Vec3b>(x, y);
+
+	unsigned char R = px[2];
+	unsigned char G = px[1];
+	unsigned char B = px[0];
+
+	unsigned char delta = 128; // 8 bit images
+
+	/* Trial: bad results
+	
+	unsigned char Y = 0.299 * R + 0.587 * G + 0.114 * B;
+	unsigned char Cr = (R - Y) * 0.713 + delta;
+	unsigned char Cb = (B - Y) * 0.564 + delta;*/
+
+	/*unsigned char Y = 0.299 * R + 0.287 * G + 0.11 * B;
+	unsigned char Cr = R - Y;
+	unsigned char Cb = B - Y;*/
+
+	unsigned char Y  = 16 + 65.738 * R / 256 + 129.057 * G / 256 + 25.064 * B / 256;
+	unsigned char Cb = 128 - 37.945 * R / 256 - 74.494 * G / 256 + 112.439 * B / 256;
+	unsigned char Cr = 128 + 112.439 * R / 256 - 94.154 * G / 256 - 18.285 * B / 256;
+
+	YCbCr_vector.push_back(Y);
+	YCbCr_vector.push_back(Cb);
+	YCbCr_vector.push_back(Cr);
+
+	return YCbCr_vector;
+}
+
+void MyCallBackFunc_YCbCr(int event, int x, int y, int flags, void* param)
+{
+	//More examples: http://opencvexamples.blogspot.com/2014/01/detect-mouse-clicks-and-moves-on-image.html
+	Mat* src = (Mat*)param;
+
+	if (event == CV_EVENT_LBUTTONDOWN)
+	{
+		Vec3b px = src->at<Vec3b>(y, x);
+		std::vector<float> YCbCr_vector = RGB2YCbCr_values(src, y, x);
+		printf("Ps(x,y) 255 format: %d,%d Color(RGB): %d,%d,%d\n",
+			x, y,
+			px[2],
+			px[1],
+			px[0]);
+		printf("Ps(x, y) YCbCr format: %d,%d Color(HSV): %f,%f,%f\n",
+			x, y,
+			YCbCr_vector.at(0),
+			YCbCr_vector.at(1),
+			YCbCr_vector.at(2));
+	}
+	if (event == CV_EVENT_RBUTTONDOWN) {
+		RGB2YCbCr();
+	}
+}
+
+void testMouseClick_YCbCr()
+{
+	Mat src;
+	//Read image from file
+	char fname[MAX_PATH];
+	while (openFileDlg(fname)) {
+		src = imread(fname);
+		// Create a window
+		namedWindow("My Window", 1);
+
+		// set the callback function for any mouse event
+		setMouseCallback("My Window", MyCallBackFunc_YCbCr, &src);
+
+		// show the image
+		imshow("My Window", src);
+
+		// wait until user press some key
 		waitKey(0);
 	}
 }
@@ -691,7 +773,7 @@ void RGB_values() {
 /**
 * function to convert RGB image format to HSV, using built - in "cvtColor" function
 */ 
-void BGR2HSV() {
+void built_RGB2HSV() {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
 		Mat img = imread(fname, IMREAD_COLOR);
@@ -703,15 +785,15 @@ void BGR2HSV() {
 }
 
 /*
-* function to convert RGB image format to YCrCb, using built - in "cvtColor" function
+* function to convert RGB image format to YCbCr, using built - in "cvtColor" function
 */
-void BGR2YCrCb() {
+void built_RGB2YCbCr() {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
 		Mat img = imread(fname, IMREAD_COLOR);
-		Mat yCrCb;
-		cvtColor(img, yCrCb, COLOR_BGR2YCrCb);
-		imshow("YCrCb", yCrCb);
+		Mat yCbCr;
+		cvtColor(img, yCbCr, COLOR_BGR2YCrCb);
+		imshow("YCbCr", yCbCr);
 		waitKey(0);
 	}
 }
@@ -734,11 +816,12 @@ int main()
 		printf(" 8 - Snap frame from live video\n");
 		printf(" 9 - Mouse callback RGB demo\n");
 		printf(" 10 - RGB 2 HSV\n");
-		printf(" 11 - RGB 2 YCrCb\n");
+		printf(" 11 - RGB 2 YCbCr\n");
 		printf(" 12 - RGB values\n");
 		printf(" 13 - Mouse callback HSV demo\n");
-		printf(" 14 - BGR2HSV built in function\n");
-		printf(" 15 - BGR2YCrCb built in function\n");
+		printf(" 14 - RGB2HSV built in function\n");
+		printf(" 15 - RGB2YCbCr built in function\n");
+		printf(" 16 - Mouse callback YCbCr demo\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d",&op);
@@ -776,7 +859,7 @@ int main()
 				RGB2HSV();
 				break;
 			case 11:
-				RGB2YCrCb();
+				RGB2YCbCr();
 				break;
 			case 12:
 				RGB_values();
@@ -785,10 +868,13 @@ int main()
 				testMouseClick_HSV();
 				break;
 			case 14:
-				BGR2HSV();
+				built_RGB2HSV();
 				break;
 			case 15:
-				BGR2YCrCb();
+				built_RGB2YCbCr();
+				break;
+			case 16:
+				testMouseClick_YCbCr();
 				break;
 		}
 	}
